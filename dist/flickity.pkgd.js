@@ -6,7 +6,7 @@
  * or Flickity Commercial License for commercial use
  *
  * https://flickity.metafizzy.co
- * Copyright 2015-2018 Metafizzy
+ * Copyright 2015-2019 Metafizzy
  */
 
 /**
@@ -234,14 +234,13 @@ proto.emitEvent = function( eventName, args ) {
   if ( !listeners || !listeners.length ) {
     return;
   }
-  // copy over to avoid interference if .off() in listener
-  listeners = listeners.slice(0);
+  var i = 0;
+  var listener = listeners[i];
   args = args || [];
   // once stuff
   var onceListeners = this._onceEvents && this._onceEvents[ eventName ];
 
-  for ( var i=0; i < listeners.length; i++ ) {
-    var listener = listeners[i]
+  while ( listener ) {
     var isOnce = onceListeners && onceListeners[ listener ];
     if ( isOnce ) {
       // remove listener
@@ -252,12 +251,16 @@ proto.emitEvent = function( eventName, args ) {
     }
     // trigger listener
     listener.apply( this, args );
+    // get next listener
+    i += isOnce ? 0 : 1;
+    listener = listeners[i];
   }
 
   return this;
 };
 
-proto.allOff = function() {
+proto.allOff =
+proto.removeAllListeners = function() {
   delete this._events;
   delete this._onceEvents;
 };
@@ -267,19 +270,22 @@ return EvEmitter;
 }));
 
 /*!
- * getSize v2.0.3
+ * getSize v2.0.2
  * measure size of elements
  * MIT license
  */
 
-/* jshint browser: true, strict: true, undef: true, unused: true */
-/* globals console: false */
+/*jshint browser: true, strict: true, undef: true, unused: true */
+/*global define: false, module: false, console: false */
 
 ( function( window, factory ) {
-  /* jshint strict: false */ /* globals define, module */
+  'use strict';
+
   if ( typeof define == 'function' && define.amd ) {
     // AMD
-    define( 'get-size/get-size',factory );
+    define( 'get-size/get-size',[],function() {
+      return factory();
+    });
   } else if ( typeof module == 'object' && module.exports ) {
     // CommonJS
     module.exports = factory();
@@ -354,7 +360,7 @@ function getStyle( elem ) {
   if ( !style ) {
     logError( 'Style returned ' + style +
       '. Are you running this code in a hidden iframe on Firefox? ' +
-      'See https://bit.ly/getsizebug1' );
+      'See http://bit.ly/getsizebug1' );
   }
   return style;
 }
@@ -380,8 +386,8 @@ function setup() {
   // -------------------------- box sizing -------------------------- //
 
   /**
-   * Chrome & Safari measure the outer-width on style.width on border-box elems
-   * IE11 & Firefox<29 measures the inner-width
+   * WebKit measures the outer-width on style.width on border-box elems
+   * IE & Firefox<29 measures the inner-width
    */
   var div = document.createElement('div');
   div.style.width = '200px';
@@ -393,11 +399,10 @@ function setup() {
   var body = document.body || document.documentElement;
   body.appendChild( div );
   var style = getStyle( div );
-  // round value for browser zoom. desandro/masonry#928
-  isBoxSizeOuter = Math.round( getStyleSize( style.width ) ) == 200;
-  getSize.isBoxSizeOuter = isBoxSizeOuter;
 
+  getSize.isBoxSizeOuter = isBoxSizeOuter = getStyleSize( style.width ) == 200;
   body.removeChild( div );
+
 }
 
 // -------------------------- getSize -------------------------- //
@@ -529,7 +534,7 @@ return getSize;
 }));
 
 /**
- * Fizzy UI utils v2.0.7
+ * Fizzy UI utils v2.0.5
  * MIT license
  */
 
@@ -584,27 +589,23 @@ utils.modulo = function( num, div ) {
 
 // ----- makeArray ----- //
 
-var arraySlice = Array.prototype.slice;
-
 // turn element or nodeList into an array
 utils.makeArray = function( obj ) {
+  var ary = [];
   if ( Array.isArray( obj ) ) {
     // use object if already an array
-    return obj;
-  }
-  // return empty array if undefined or null. #6
-  if ( obj === null || obj === undefined ) {
-    return [];
-  }
-
-  var isArrayLike = typeof obj == 'object' && typeof obj.length == 'number';
-  if ( isArrayLike ) {
+    ary = obj;
+  } else if ( obj && typeof obj == 'object' &&
+    typeof obj.length == 'number' ) {
     // convert nodeList to array
-    return arraySlice.call( obj );
+    for ( var i=0; i < obj.length; i++ ) {
+      ary.push( obj[i] );
+    }
+  } else {
+    // array of single index
+    ary.push( obj );
   }
-
-  // array of single index
-  return [ obj ];
+  return ary;
 };
 
 // ----- removeFrom ----- //
@@ -683,21 +684,22 @@ utils.filterFindElements = function( elems, selector ) {
 // ----- debounceMethod ----- //
 
 utils.debounceMethod = function( _class, methodName, threshold ) {
-  threshold = threshold || 100;
   // original method
   var method = _class.prototype[ methodName ];
   var timeoutName = methodName + 'Timeout';
 
   _class.prototype[ methodName ] = function() {
     var timeout = this[ timeoutName ];
-    clearTimeout( timeout );
-
+    if ( timeout ) {
+      clearTimeout( timeout );
+    }
     var args = arguments;
+
     var _this = this;
     this[ timeoutName ] = setTimeout( function() {
       method.apply( _this, args );
       delete _this[ timeoutName ];
-    }, threshold );
+    }, threshold || 100 );
   };
 };
 
@@ -3851,6 +3853,21 @@ proto._createLazyload = function() {
 
 proto.lazyLoad = function() {
   var lazyLoad = this.options.lazyLoad;
+
+  /**
+   * Catch PICTURE tag loading
+   */
+  if (this.element.querySelector('picture') && !this._pictureLoadBound) {
+    var flickity = this;
+    this.getCellElements().forEach(function(cell) {
+        cell.querySelector('IMG').addEventListener('load', function() {
+          flickity.cellSizeChange(cell);
+        });
+    });
+
+    this._pictureLoadBound = true;
+  }
+
   if ( !lazyLoad ) {
     return;
   }
@@ -3892,6 +3909,7 @@ function getCellLazyImages( cellElem ) {
  * class to handle loading images
  */
 function LazyLoader( img, flickity ) {
+    console.log('INIT');
   this.img = img;
   this.flickity = flickity;
   this.load();
@@ -3954,7 +3972,7 @@ return Flickity;
  * or Flickity Commercial License for commercial use
  *
  * https://flickity.metafizzy.co
- * Copyright 2015-2018 Metafizzy
+ * Copyright 2015-2019 Metafizzy
  */
 
 ( function( window, factory ) {
@@ -4141,7 +4159,7 @@ return Flickity;
 }));
 
 /*!
- * imagesLoaded v4.1.4
+ * imagesLoaded v4.1.2
  * JavaScript is all like "You images are done yet or what?"
  * MIT License
  */
@@ -4193,23 +4211,22 @@ function extend( a, b ) {
   return a;
 }
 
-var arraySlice = Array.prototype.slice;
-
 // turn element or nodeList into an array
 function makeArray( obj ) {
+  var ary = [];
   if ( Array.isArray( obj ) ) {
     // use object if already an array
-    return obj;
-  }
-
-  var isArrayLike = typeof obj == 'object' && typeof obj.length == 'number';
-  if ( isArrayLike ) {
+    ary = obj;
+  } else if ( typeof obj.length == 'number' ) {
     // convert nodeList to array
-    return arraySlice.call( obj );
+    for ( var i=0; i < obj.length; i++ ) {
+      ary.push( obj[i] );
+    }
+  } else {
+    // array of single index
+    ary.push( obj );
   }
-
-  // array of single index
-  return [ obj ];
+  return ary;
 }
 
 // -------------------------- imagesLoaded -------------------------- //
@@ -4225,19 +4242,13 @@ function ImagesLoaded( elem, options, onAlways ) {
     return new ImagesLoaded( elem, options, onAlways );
   }
   // use elem as selector string
-  var queryElem = elem;
   if ( typeof elem == 'string' ) {
-    queryElem = document.querySelectorAll( elem );
-  }
-  // bail if bad element
-  if ( !queryElem ) {
-    console.error( 'Bad element for imagesLoaded ' + ( queryElem || elem ) );
-    return;
+    elem = document.querySelectorAll( elem );
   }
 
-  this.elements = makeArray( queryElem );
+  this.elements = makeArray( elem );
   this.options = extend( {}, this.options );
-  // shift arguments if no options set
+
   if ( typeof options == 'function' ) {
     onAlways = options;
   } else {
@@ -4256,7 +4267,9 @@ function ImagesLoaded( elem, options, onAlways ) {
   }
 
   // HACK check async to allow time to bind listeners
-  setTimeout( this.check.bind( this ) );
+  setTimeout( function() {
+    this.check();
+  }.bind( this ));
 }
 
 ImagesLoaded.prototype = Object.create( EvEmitter.prototype );
@@ -4424,9 +4437,7 @@ LoadingImage.prototype.check = function() {
 };
 
 LoadingImage.prototype.getIsImageComplete = function() {
-  // check for non-zero, non-undefined naturalWidth
-  // fixes Safari+InfiniteScroll+Masonry bug infinite-scroll#671
-  return this.img.complete && this.img.naturalWidth;
+  return this.img.complete && this.img.naturalWidth !== undefined;
 };
 
 LoadingImage.prototype.confirm = function( isLoaded, message ) {

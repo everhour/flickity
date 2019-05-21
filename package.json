@@ -31,7 +31,8 @@
     "minimist": "^1.2.0"
   },
   "scripts": {
-    "test": "echo \"View test/ in browser\" && exit 1"
+    "test": "echo \"View test/ in browser\" && exit 1",
+    "build": "gulp"
   },
   "repository": {
     "type": "git",

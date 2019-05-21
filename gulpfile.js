@@ -64,7 +64,7 @@ gulp.task( 'requirejs', function() {
   // should refactor rjsOptimize to produce src
   return gulp.src('js/index.js')
     .pipe( rjsOptimize({
-      baseUrl: 'bower_components',
+      baseUrl: 'node_modules',
       optimize: 'none',
       include: [
         'jquery-bridget/jquery-bridget',

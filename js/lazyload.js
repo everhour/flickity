@@ -38,6 +38,21 @@ proto._createLazyload = function() {
 
 proto.lazyLoad = function() {
   var lazyLoad = this.options.lazyLoad;
+
+  /**
+   * Catch PICTURE tag loading
+   */
+  if (this.element.querySelector('picture') && !this._pictureLoadBound) {
+    var flickity = this;
+    this.getCellElements().forEach(function(cell) {
+        cell.querySelector('IMG').addEventListener('load', function() {
+          flickity.cellSizeChange(cell);
+        });
+    });
+
+    this._pictureLoadBound = true;
+  }
+
   if ( !lazyLoad ) {
     return;
   }
@@ -79,6 +94,7 @@ function getCellLazyImages( cellElem ) {
  * class to handle loading images
  */
 function LazyLoader( img, flickity ) {
+    console.log('INIT');
   this.img = img;
   this.flickity = flickity;
   this.load();

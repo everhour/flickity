@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width" />
+
+  <title>Flickity tests</title>
+
+  <link rel="stylesheet" href="../css/flickity.css" media="screen" />
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+  <!-- dependencies -->
+  <script src="../node_modules/get-size/get-size.js"></script>
+  <!-- <script src="../bower_components/imagesloaded/imagesloaded.js"></script> -->
+  <script src="../node_modules/desandro-matches-selector/matches-selector.js"></script>
+  <script src="../node_modules/ev-emitter/ev-emitter.js"></script>
+  <script src="../node_modules/fizzy-ui-utils/utils.js"></script>
+  <script src="../node_modules/unipointer/unipointer.js"></script>
+  <script src="../node_modules/unidragger/unidragger.js"></script>
+
+  <!-- Flickity source -->
+  <script src="../js/cell.js"></script>
+  <script src="../js/slide.js"></script>
+  <script src="../js/animate.js"></script>
+  <script src="../js/flickity.js"></script>
+  <script src="../js/drag.js"></script>
+  <script src="../js/prev-next-button.js"></script>
+  <script src="../js/page-dots.js"></script>
+  <script src="../js/player.js"></script>
+  <script src="../js/add-remove-cell.js"></script>
+  <script src="../js/lazyload.js"></script>
+  <!-- turn off accessibility for these tests
+    was causing bugs with dragging tests -->
+  <script>
+    Flickity.defaults.accessibility = false;
+  </script>
+
+
+</head>
+<body>
+
+  <h2>Picture Tag</h2>
+
+  <div class="screens-slider">
+    <!--product screens-->
+    <div class="carousel-cell">
+      <picture>
+        <source srcset="https://everhour.com/assets/images/new-design/screens/time-tracking-list-view.webp, https://everhour.com/assets/images/new-design/screens/time-tracking-list-view@2x.webp 2x"
+                type="image/webp">
+        <source srcset="https://everhour.com/assets/images/new-design/screens/time-tracking-list-view.png, https://everhour.com/assets/images/new-design/screens/time-tracking-list-view@2x.png 2x"
+                type="image/png">
+        <img src="https://everhour.com/assets/images/new-design/screens/time-tracking-list-view.png"
+             alt="Time tracking list view in Everhour">
+      </picture>
+    </div>
+    <div class="carousel-cell">
+      <picture>
+        <source srcset="https://everhour.com/assets/images/new-design/screens/time-tracking-timesheet-view.webp, https://everhour.com/assets/images/new-design/screens/time-tracking-timesheet-view@2x.webp 2x"
+                type="image/webp">
+        <source srcset="https://everhour.com/assets/images/new-design/screens/time-tracking-timesheet-view.png, https://everhour.com/assets/images/new-design/screens/time-tracking-timesheet-view@2x.png 2x"
+                type="image/png">
+        <img src="https://everhour.com/assets/images/new-design/screens/time-tracking-timesheet-view.png"
+             alt="Time tracking week view in Everhour">
+      </picture>
+    </div>
+  </div>
+
+  <script>
+
+    var flky = new Flickity( '.screens-slider', {
+      pageDots: false,
+      lazyLoad: true,
+    });
+
+    // var $carousel = $('.screens-slider').flickity({
+    //   pageDots: false,
+    // });
+
+    $('.screens-slider').on('click', '.carousel-cell', function () {
+      var index = $(this).index();
+      flky.select(index);
+    });
+  </script>
+
+
+</body>
+</html>
