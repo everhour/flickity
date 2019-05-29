@@ -42,8 +42,8 @@ proto.lazyLoad = function() {
   /**
    * Catch PICTURE tag loading
    */
-  if (this.element.querySelector('picture') && !this._pictureLoadBound) {
-    var flickity = this;
+  var flickity = this;
+  if (this.element.querySelector('picture img[src]') && !this._pictureLoadBound) {
     this.getCellElements().forEach(function(cell) {
         cell.querySelector('IMG').addEventListener('load', function() {
           flickity.cellSizeChange(cell);
@@ -60,15 +60,32 @@ proto.lazyLoad = function() {
   var adjCount = typeof lazyLoad == 'number' ? lazyLoad : 0;
   var cellElems = this.getAdjacentCellElements( adjCount );
   // get lazy images in those cells
-  var lazyImages = [];
   cellElems.forEach( function( cellElem ) {
-    var lazyCellImages = getCellLazyImages( cellElem );
-    lazyImages = lazyImages.concat( lazyCellImages );
+    // load lazy images
+    getCellLazyImages( cellElem ).forEach( function( img ) {
+      var i = 0;
+
+      if (img.nodeName == 'PICTURE') {
+        img.querySelector('IMG').addEventListener('load', function() {
+          flickity.cellSizeChange(cellElem);
+        });
+
+        var sources = img.querySelectorAll('source[data-srcset]');
+        for (i = 0; i < sources.length; i++) {
+          sources[i].srcset = sources[i].dataset.srcset;
+          delete sources[i].dataset.srcset;
+        }
+
+        var images = img.querySelectorAll('img[data-src]');
+        for (i = 0; i < images.length; i++) {
+          images[i].src = images[i].dataset.src;
+          delete images[i].dataset.src;
+        }
+      } else {
+        new LazyLoader( img, this );
+      }
+    }, this);
   });
-  // load lazy images
-  lazyImages.forEach( function( img ) {
-    new LazyLoader( img, this );
-  }, this );
 };
 
 function getCellLazyImages( cellElem ) {
@@ -81,6 +98,11 @@ function getCellLazyImages( cellElem ) {
       return [ cellElem ];
     }
   }
+
+  if ( cellElem.nodeName == 'PICTURE' && cellElem.querySelector('img[data-src]') ) {
+    return [ cellElem ];
+  }
+
   // select lazy images in cell
   var lazySelector = 'img[data-flickity-lazyload], ' +
     'img[data-flickity-lazyload-src], img[data-flickity-lazyload-srcset]';
@@ -94,7 +116,6 @@ function getCellLazyImages( cellElem ) {
  * class to handle loading images
  */
 function LazyLoader( img, flickity ) {
-    console.log('INIT');
   this.img = img;
   this.flickity = flickity;
   this.load();
