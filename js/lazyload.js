@@ -59,6 +59,7 @@ proto.lazyLoad = function() {
   // get adjacent cells, use lazyLoad option for adjacent count
   var adjCount = typeof lazyLoad == 'number' ? lazyLoad : 0;
   var cellElems = this.getAdjacentCellElements( adjCount );
+  var fl = this;
   // get lazy images in those cells
   cellElems.forEach( function( cellElem ) {
     // load lazy images
@@ -82,9 +83,9 @@ proto.lazyLoad = function() {
           delete images[i].dataset.src;
         }
       } else {
-        new LazyLoader( img, this );
+        new LazyLoader( img, fl );
       }
-    }, this);
+    }, fl);
   });
 };
 
